@@ -1,6 +1,6 @@
 {
-  "id": "openclaw-wechat",
-  "name": "OpenClaw WeChat (企业微信)",
+  "id": "openclaw-wechat-plugin",
+  "name": "OpenClaw WeChat Plugin",
   "version": "1.0.0",
   "description": "OpenClaw 企业微信 channel plugin",
   "extensions": ["./src/index.js"],
@@ -39,11 +39,11 @@
     }
   },
   "channel": {
-    "id": "openclaw-wechat",
+    "id": "openclaw-wechat-plugin",
     "label": "OpenClaw WeChat",
     "selectionLabel": "OpenClaw WeChat (企业微信自建应用)",
-    "docsPath": "/channels/openclaw-wechat",
-    "docsLabel": "openclaw-wechat",
+    "docsPath": "/channels/openclaw-wechat-plugin",
+    "docsLabel": "openclaw-wechat-plugin",
     "blurb": "OpenClaw Enterprise WeChat internal app via callback + send API.",
     "order": 80,
     "aliases": ["wecom", "wework", "qiwei", "wxwork", "openclaw-wecom"]

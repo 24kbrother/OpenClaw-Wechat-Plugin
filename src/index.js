@@ -546,12 +546,12 @@ async function fetchMediaFromUrl(url) {
 }
 
 const WecomChannelPlugin = {
-  id: "openclaw-wechat",
+  id: "openclaw-wechat-plugin",
   meta: {
-    id: "openclaw-wechat",
+    id: "openclaw-wechat-plugin",
     label: "OpenClaw WeChat",
     selectionLabel: "OpenClaw WeChat (企业微信自建应用)",
-    docsPath: "/channels/openclaw-wechat",
+    docsPath: "/channels/openclaw-wechat-plugin",
     blurb: "OpenClaw Enterprise WeChat internal app via callback + send API.",
     aliases: ["wecom", "wework", "qiwei", "wxwork", "openclaw-wecom"],
   },
@@ -564,9 +564,9 @@ const WecomChannelPlugin = {
     markdown: true, // 阶段三完成：支持 Markdown 转换
   },
   config: {
-    listAccountIds: (cfg) => Object.keys(cfg.channels?.openclaw-wechat?.accounts ?? {}),
+    listAccountIds: (cfg) => Object.keys(cfg.channels?.openclaw-wechat-plugin?.accounts ?? {}),
     resolveAccount: (cfg, accountId) =>
-      (cfg.channels?.openclaw-wechat?.accounts?.[accountId ?? "default"] ?? { accountId }),
+      (cfg.channels?.openclaw-wechat-plugin?.accounts?.[accountId ?? "default"] ?? { accountId }),
   },
   outbound: {
     deliveryMode: "direct",
