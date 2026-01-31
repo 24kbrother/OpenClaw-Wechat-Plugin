@@ -551,9 +551,9 @@ const WecomChannelPlugin = {
     id: "openclaw-wechat-plugin",
     label: "OpenClaw WeChat",
     selectionLabel: "OpenClaw WeChat (企业微信自建应用)",
-    docsPath: "/channels/openclaw-wechat-plugin",
+    docsPath: "/channels/wecom",
     blurb: "OpenClaw Enterprise WeChat internal app via callback + send API.",
-    aliases: ["wecom", "wework", "qiwei", "wxwork", "openclaw-wecom"],
+    aliases: ["openclaw-wechat-plugin", "openclaw-wecom", "wecom", "wework", "qiwei", "wxwork"],
   },
   capabilities: {
     chatTypes: ["direct", "group"],
@@ -564,9 +564,9 @@ const WecomChannelPlugin = {
     markdown: true, // 阶段三完成：支持 Markdown 转换
   },
   config: {
-    listAccountIds: (cfg) => Object.keys(cfg.channels?.openclaw-wechat-plugin?.accounts ?? {}),
+    listAccountIds: (cfg) => Object.keys(cfg.channels?.wecom?.accounts ?? {}),
     resolveAccount: (cfg, accountId) =>
-      (cfg.channels?.openclaw-wechat-plugin?.accounts?.[accountId ?? "default"] ?? { accountId }),
+      (cfg.channels?.wecom?.accounts?.[accountId ?? "default"] ?? { accountId }),
   },
   outbound: {
     deliveryMode: "direct",
