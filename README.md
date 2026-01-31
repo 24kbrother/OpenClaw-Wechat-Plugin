@@ -116,7 +116,7 @@ tail -f /tmp/openclaw/openclaw-*.log | grep wecom
 {
   "env": {
     "vars": {
-      "WECOM_API_PROXY": "http://你的代理服务器IP:3100",
+      "WECOM_API_PROXY": "http://你的代理服务器IP:3120",
       "WECOM_CORP_ID": "...",
       "WECOM_CORP_SECRET": "...",
       // ...其他配置
