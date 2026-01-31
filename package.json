@@ -1,0 +1,42 @@
+{
+  "name": "openclaw-wechat-plugin",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "企业微信（WeCom）channel plugin for OpenClaw. Supports message receiving, AI reply, media handling, and API proxy.",
+  "license": "MIT",
+  "exports": "./src/index.js",
+  "openclaw": {
+    "extensions": ["./src/index.js"],
+    "channel": {
+      "id": "wecom",
+      "label": "WeCom",
+      "selectionLabel": "WeCom (企业微信自建应用)",
+      "docsPath": "/channels/wecom",
+      "docsLabel": "wecom",
+      "blurb": "Enterprise WeChat internal app via callback + send API.",
+      "order": 80,
+      "aliases": ["wework", "qiwei", "wxwork"]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/OpenClaw-Wechat-Plugin.git"
+  },
+  "keywords": [
+    "openclaw",
+    "wecom",
+    "wechat",
+    "enterprise-wechat",
+    "chatbot",
+    "ai"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "bugs": {
+    "url": "https://github.com/yourusername/OpenClaw-Wechat-Plugin/issues"
+  },
+  "homepage": "https://github.com/yourusername/OpenClaw-Wechat-Plugin#readme",
+  "dependencies": {
+    "fast-xml-parser": "^4.3.6"
+  }
+}
