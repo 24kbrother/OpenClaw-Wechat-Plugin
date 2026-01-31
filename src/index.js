@@ -707,7 +707,8 @@ const wecomAccounts = new Map(); // key: accountId, value: config
 let defaultAccountId = "default";
 
 // 获取 wecom 配置（支持多账户）
-// 优先级: channels.wecom > env.vars > 进程环境变量
+// 优先级: env.vars > channels.wecom > 进程环境变量
+// 注意：env.vars 优先，避免 openclaw doctor 自动添加的格式错误的 channels 配置影响插件
 function getWecomConfig(api, accountId = null) {
   const targetAccountId = accountId || defaultAccountId;
 
@@ -717,76 +718,39 @@ function getWecomConfig(api, accountId = null) {
   }
 
   const cfg = api?.config ?? gatewayRuntime?.config;
-
-  // 1. 优先从 channels.wecom 读取配置
-  const channelConfig = cfg?.channels?.wecom;
-  if (channelConfig && targetAccountId === "default") {
-    const corpId = channelConfig.corpId;
-    const corpSecret = channelConfig.corpSecret;
-    const agentId = channelConfig.agentId;
-    const callbackToken = channelConfig.callbackToken;
-    const callbackAesKey = channelConfig.callbackAesKey;
-    const webhookPath = channelConfig.webhookPath || "/wecom/callback";
-
-    if (corpId && corpSecret && agentId) {
-      const config = {
-        accountId: targetAccountId,
-        corpId,
-        corpSecret,
-        agentId: asNumber(agentId),
-        callbackToken,
-        callbackAesKey,
-        webhookPath,
-        enabled: channelConfig.enabled !== false,
-      };
-      wecomAccounts.set(targetAccountId, config);
-      return config;
-    }
-  }
-
-  // 2. 多账户支持：从 channels.wecom.accounts 读取
-  const accountConfig = cfg?.channels?.wecom?.accounts?.[targetAccountId];
-  if (accountConfig) {
-    const corpId = accountConfig.corpId;
-    const corpSecret = accountConfig.corpSecret;
-    const agentId = accountConfig.agentId;
-    const callbackToken = accountConfig.callbackToken;
-    const callbackAesKey = accountConfig.callbackAesKey;
-    const webhookPath = accountConfig.webhookPath || "/wecom/callback";
-
-    if (corpId && corpSecret && agentId) {
-      const config = {
-        accountId: targetAccountId,
-        corpId,
-        corpSecret,
-        agentId: asNumber(agentId),
-        callbackToken,
-        callbackAesKey,
-        webhookPath,
-        enabled: accountConfig.enabled !== false,
-      };
-      wecomAccounts.set(targetAccountId, config);
-      return config;
-    }
-  }
-
-  // 3. 回退到 env.vars（兼容旧配置）
   const envVars = cfg?.env?.vars ?? {};
   const accountPrefix = targetAccountId === "default" ? "WECOM" : `WECOM_${targetAccountId.toUpperCase()}`;
 
-  let corpId = envVars[`${accountPrefix}_CORP_ID`] || (targetAccountId === "default" ? envVars.WECOM_CORP_ID : null);
-  let corpSecret = envVars[`${accountPrefix}_CORP_SECRET`] || (targetAccountId === "default" ? envVars.WECOM_CORP_SECRET : null);
-  let agentId = envVars[`${accountPrefix}_AGENT_ID`] || (targetAccountId === "default" ? envVars.WECOM_AGENT_ID : null);
-  let callbackToken = envVars[`${accountPrefix}_CALLBACK_TOKEN`] || (targetAccountId === "default" ? envVars.WECOM_CALLBACK_TOKEN : null);
-  let callbackAesKey = envVars[`${accountPrefix}_CALLBACK_AES_KEY`] || (targetAccountId === "default" ? envVars.WECOM_CALLBACK_AES_KEY : null);
-  let webhookPath = envVars[`${accountPrefix}_WEBHOOK_PATH`] || (targetAccountId === "default" ? envVars.WECOM_WEBHOOK_PATH : null) || "/wecom/callback";
+  // 1. 优先从 env.vars 读取配置
+  let corpId = envVars[`${accountPrefix}_CORP_ID`] || envVars.WECOM_CORP_ID;
+  let corpSecret = envVars[`${accountPrefix}_CORP_SECRET`] || envVars.WECOM_CORP_SECRET;
+  let agentId = envVars[`${accountPrefix}_AGENT_ID`] || envVars.WECOM_AGENT_ID;
+  let callbackToken = envVars[`${accountPrefix}_CALLBACK_TOKEN`] || envVars.WECOM_CALLBACK_TOKEN;
+  let callbackAesKey = envVars[`${accountPrefix}_CALLBACK_AES_KEY`] || envVars.WECOM_CALLBACK_AES_KEY;
+  let webhookPath = envVars[`${accountPrefix}_WEBHOOK_PATH`] || envVars.WECOM_WEBHOOK_PATH || "/wecom/callback";
+  let apiProxy = envVars.WECOM_API_PROXY;
 
-  // 4. 最后回退到进程环境变量
+  // 2. 如果 env.vars 没有，从 channels.wecom 读取（备用）
+  if (!corpId || !corpSecret || !agentId) {
+    const channelConfig = cfg?.channels?.wecom;
+    if (channelConfig) {
+      corpId = corpId || channelConfig.corpId;
+      corpSecret = corpSecret || channelConfig.corpSecret;
+      agentId = agentId || channelConfig.agentId;
+      callbackToken = callbackToken || channelConfig.callbackToken;
+      callbackAesKey = callbackAesKey || channelConfig.callbackAesKey;
+      webhookPath = webhookPath || channelConfig.webhookPath || "/wecom/callback";
+      apiProxy = apiProxy || channelConfig.apiProxy;
+    }
+  }
+
+  // 3. 最后回退到进程环境变量
   if (!corpId) corpId = requireEnv(`${accountPrefix}_CORP_ID`) || requireEnv("WECOM_CORP_ID");
   if (!corpSecret) corpSecret = requireEnv(`${accountPrefix}_CORP_SECRET`) || requireEnv("WECOM_CORP_SECRET");
   if (!agentId) agentId = requireEnv(`${accountPrefix}_AGENT_ID`) || requireEnv("WECOM_AGENT_ID");
   if (!callbackToken) callbackToken = requireEnv(`${accountPrefix}_CALLBACK_TOKEN`) || requireEnv("WECOM_CALLBACK_TOKEN");
   if (!callbackAesKey) callbackAesKey = requireEnv(`${accountPrefix}_CALLBACK_AES_KEY`) || requireEnv("WECOM_CALLBACK_AES_KEY");
+  if (!webhookPath) webhookPath = requireEnv(`${accountPrefix}_WEBHOOK_PATH`) || requireEnv("WECOM_WEBHOOK_PATH") || "/wecom/callback";
 
   if (corpId && corpSecret && agentId) {
     const config = {
@@ -797,6 +761,8 @@ function getWecomConfig(api, accountId = null) {
       callbackToken,
       callbackAesKey,
       webhookPath,
+      apiProxy,
+      enabled: true,
     };
     wecomAccounts.set(targetAccountId, config);
     return config;

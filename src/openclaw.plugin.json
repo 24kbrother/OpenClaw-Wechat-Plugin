@@ -38,6 +38,20 @@
       }
     }
   },
+  "channelConfig": {
+    "wecom": {
+      "envPrefix": "WECOM",
+      "properties": {
+        "corpId": { "type": "string", "env": "WECOM_CORP_ID" },
+        "corpSecret": { "type": "string", "env": "WECOM_CORP_SECRET" },
+        "agentId": { "type": "number", "env": "WECOM_AGENT_ID" },
+        "callbackToken": { "type": "string", "env": "WECOM_CALLBACK_TOKEN" },
+        "callbackAesKey": { "type": "string", "env": "WECOM_CALLBACK_AES_KEY" },
+        "webhookPath": { "type": "string", "env": "WECOM_WEBHOOK_PATH" },
+        "apiProxy": { "type": "string", "env": "WECOM_API_PROXY" }
+      }
+    }
+  },
   "channel": {
     "id": "wecom",
     "label": "OpenClaw WeChat",
