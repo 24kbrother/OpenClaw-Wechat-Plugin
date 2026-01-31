@@ -121,9 +121,9 @@ function getWecomProxyConfig(api) {
         protocol: url.protocol.replace(':', ''),
         pathname: url.pathname,
       };
-      api?.logger?.info?.(`wecom: proxy configured: ${proxyUrl}`);
+      api?.logger?.info?.(`openclaw-wechat: proxy configured: ${proxyUrl}`);
     } catch (err) {
-      api?.logger?.warn?.(`wecom: invalid proxy URL: ${proxyUrl}, using direct connection`);
+      api?.logger?.warn?.(`openclaw-wechat: invalid proxy URL: ${proxyUrl}, using direct connection`);
       wecomProxyConfig = null;
     }
   } else {
@@ -145,11 +145,11 @@ async function fetchWecomApi(api, url, options = {}) {
       const originalUrl = new URL(url);
       targetUrl = `${proxyConfig.url}${originalUrl.pathname}${originalUrl.search}`;
     } catch (err) {
-      api?.logger?.error?.(`wecom: invalid URL: ${url}, ${err.message}`);
+      api?.logger?.error?.(`openclaw-wechat: invalid URL: ${url}, ${err.message}`);
       throw err;
     }
     
-    api?.logger?.debug?.(`wecom: proxy request: ${url} → ${targetUrl}`);
+    api?.logger?.debug?.(`openclaw-wechat: proxy request: ${url} → ${targetUrl}`);
     
     return fetch(targetUrl, {
       ...options,
@@ -409,10 +409,10 @@ async function sendWecomTextSingle({ api, corpId, corpSecret, agentId, toUser, t
 async function sendWecomText({ api, corpId, corpSecret, agentId, toUser, text, logger }) {
   const chunks = splitWecomText(text);
 
-  logger?.info?.(`wecom: splitting message into ${chunks.length} chunks, total bytes=${getByteLength(text)}`);
+  logger?.info?.(`openclaw-wechat: splitting message into ${chunks.length} chunks, total bytes=${getByteLength(text)}`);
 
   for (let i = 0; i < chunks.length; i++) {
-    logger?.info?.(`wecom: sending chunk ${i + 1}/${chunks.length}, bytes=${getByteLength(chunks[i])}`);
+    logger?.info?.(`openclaw-wechat: sending chunk ${i + 1}/${chunks.length}, bytes=${getByteLength(chunks[i])}`);
     await sendWecomTextSingle({ api, corpId, corpSecret, agentId, toUser, text: chunks[i] });
     // 分段发送时添加间隔，避免触发限流
     if (i < chunks.length - 1) {
@@ -546,14 +546,14 @@ async function fetchMediaFromUrl(url) {
 }
 
 const WecomChannelPlugin = {
-  id: "wecom",
+  id: "openclaw-wechat",
   meta: {
-    id: "wecom",
-    label: "WeCom",
-    selectionLabel: "WeCom (企业微信自建应用)",
-    docsPath: "/channels/wecom",
-    blurb: "Enterprise WeChat internal app via callback + send API.",
-    aliases: ["wework", "qiwei", "wxwork"],
+    id: "openclaw-wechat",
+    label: "OpenClaw WeChat",
+    selectionLabel: "OpenClaw WeChat (企业微信自建应用)",
+    docsPath: "/channels/openclaw-wechat",
+    blurb: "OpenClaw Enterprise WeChat internal app via callback + send API.",
+    aliases: ["wecom", "wework", "qiwei", "wxwork", "openclaw-wecom"],
   },
   capabilities: {
     chatTypes: ["direct", "group"],
@@ -564,9 +564,9 @@ const WecomChannelPlugin = {
     markdown: true, // 阶段三完成：支持 Markdown 转换
   },
   config: {
-    listAccountIds: (cfg) => Object.keys(cfg.channels?.wecom?.accounts ?? {}),
+    listAccountIds: (cfg) => Object.keys(cfg.channels?.openclaw-wechat?.accounts ?? {}),
     resolveAccount: (cfg, accountId) =>
-      (cfg.channels?.wecom?.accounts?.[accountId ?? "default"] ?? { accountId }),
+      (cfg.channels?.openclaw-wechat?.accounts?.[accountId ?? "default"] ?? { accountId }),
   },
   outbound: {
     deliveryMode: "direct",
@@ -593,8 +593,8 @@ const WecomChannelPlugin = {
         throw new Error("WeCom not configured (check channels.wecom in openclaw.json)");
       }
       const { corpId, corpSecret, agentId } = config;
-      // to 格式为 "wecom:userid"，需要提取 userid
-      const userId = to.startsWith("wecom:") ? to.slice(6) : to;
+      // to 格式为 "openclaw-wechat:userid"，需要提取 userid
+      const userId = to.startsWith("openclaw-wechat:") ? to.slice(6) : to;
 
       // 如果有媒体附件，先发送媒体
       if (mediaUrl && mediaType === "image") {
@@ -609,7 +609,7 @@ const WecomChannelPlugin = {
           await sendWecomImage({ corpId, corpSecret, agentId, toUser: userId, mediaId });
         } catch (mediaErr) {
           // 媒体发送失败不阻止文本发送，只记录警告
-          console.warn?.(`wecom: failed to send media: ${mediaErr.message}`);
+          console.warn?.(`openclaw-wechat: failed to send media: ${mediaErr.message}`);
         }
       }
 
@@ -638,7 +638,7 @@ async function writeToTranscript({ sessionKey, role, text, logger }) {
 
     // 读取 sessions.json 获取 sessionId
     if (!existsSync(sessionsJsonPath)) {
-      logger?.warn?.("wecom: sessions.json not found");
+      logger?.warn?.("openclaw-wechat: sessions.json not found");
       return;
     }
 
@@ -647,7 +647,7 @@ async function writeToTranscript({ sessionKey, role, text, logger }) {
     const sessionEntry = sessionsData[sessionKey] || sessionsData[sessionKey.toLowerCase()];
 
     if (!sessionEntry?.sessionId) {
-      logger?.warn?.(`wecom: session entry not found for ${sessionKey}`);
+      logger?.warn?.(`openclaw-wechat: session entry not found for ${sessionKey}`);
       return;
     }
 
@@ -670,9 +670,9 @@ async function writeToTranscript({ sessionKey, role, text, logger }) {
     };
 
     appendFileSync(transcriptPath, `${JSON.stringify(transcriptEntry)}\n`, "utf-8");
-    logger?.info?.(`wecom: wrote ${role} message to transcript`);
+    logger?.info?.(`openclaw-wechat: wrote ${role} message to transcript`);
   } catch (err) {
-    logger?.warn?.(`wecom: failed to write transcript: ${err.message}`);
+    logger?.warn?.(`openclaw-wechat: failed to write transcript: ${err.message}`);
   }
 }
 
@@ -837,9 +837,9 @@ export default function register(api) {
   // 初始化配置
   const cfg = getWecomConfig(api);
   if (cfg) {
-    api.logger.info?.(`wecom: config loaded (corpId=${cfg.corpId?.slice(0, 8)}...)`);
+    api.logger.info?.(`openclaw-wechat: config loaded (corpId=${cfg.corpId?.slice(0, 8)}...)`);
   } else {
-    api.logger.warn?.("wecom: no configuration found (check channels.wecom in openclaw.json)");
+    api.logger.warn?.("openclaw-wechat: no configuration found (check channels.wecom in openclaw.json)");
   }
 
   api.registerChannel({ plugin: WecomChannelPlugin });
@@ -848,7 +848,7 @@ export default function register(api) {
   // 这个方法会在插件加载时被调用，用于捕获 broadcast 上下文
   api.registerGatewayMethod("wecom.init", async (ctx, nodeId, params) => {
     gatewayBroadcastCtx = ctx;
-    api.logger.info?.("wecom: gateway broadcast context captured");
+    api.logger.info?.("openclaw-wechat: gateway broadcast context captured");
     return { ok: true };
   });
 
@@ -975,16 +975,16 @@ export default function register(api) {
       // 异步处理消息，不阻塞响应
       if (msgType === "text" && msgObj?.Content) {
         processInboundMessage({ api, fromUser, content: msgObj.Content, msgType: "text", chatId, isGroupChat }).catch((err) => {
-          api.logger.error?.(`wecom: async message processing failed: ${err.message}`);
+          api.logger.error?.(`openclaw-wechat: async message processing failed: ${err.message}`);
         });
       } else if (msgType === "image" && msgObj?.MediaId) {
         processInboundMessage({ api, fromUser, mediaId: msgObj.MediaId, msgType: "image", picUrl: msgObj.PicUrl, chatId, isGroupChat }).catch((err) => {
-          api.logger.error?.(`wecom: async image processing failed: ${err.message}`);
+          api.logger.error?.(`openclaw-wechat: async image processing failed: ${err.message}`);
         });
       } else if (msgType === "voice" && msgObj?.MediaId) {
         // Recognition 字段包含企业微信自动语音识别的结果（需要在企业微信后台开启）
         processInboundMessage({ api, fromUser, mediaId: msgObj.MediaId, msgType: "voice", recognition: msgObj.Recognition, chatId, isGroupChat }).catch((err) => {
-          api.logger.error?.(`wecom: async voice processing failed: ${err.message}`);
+          api.logger.error?.(`openclaw-wechat: async voice processing failed: ${err.message}`);
         });
       } else if (msgType === "video" && msgObj?.MediaId) {
         processInboundMessage({
@@ -994,7 +994,7 @@ export default function register(api) {
           thumbMediaId: msgObj.ThumbMediaId,
           chatId, isGroupChat
         }).catch((err) => {
-          api.logger.error?.(`wecom: async video processing failed: ${err.message}`);
+          api.logger.error?.(`openclaw-wechat: async video processing failed: ${err.message}`);
         });
       } else if (msgType === "file" && msgObj?.MediaId) {
         processInboundMessage({
@@ -1005,7 +1005,7 @@ export default function register(api) {
           fileSize: msgObj.FileSize,
           chatId, isGroupChat
         }).catch((err) => {
-          api.logger.error?.(`wecom: async file processing failed: ${err.message}`);
+          api.logger.error?.(`openclaw-wechat: async file processing failed: ${err.message}`);
         });
       } else if (msgType === "link") {
         // 链接分享消息
@@ -1018,15 +1018,15 @@ export default function register(api) {
           linkPicUrl: msgObj.PicUrl,
           chatId, isGroupChat
         }).catch((err) => {
-          api.logger.error?.(`wecom: async link processing failed: ${err.message}`);
+          api.logger.error?.(`openclaw-wechat: async link processing failed: ${err.message}`);
         });
       } else {
-        api.logger.info?.(`wecom: ignoring unsupported message type=${msgType}`);
+        api.logger.info?.(`openclaw-wechat: ignoring unsupported message type=${msgType}`);
       }
     },
   });
 
-  api.logger.info?.(`wecom: registered webhook at ${normalizedPath}`);
+  api.logger.info?.(`openclaw-wechat: registered webhook at ${normalizedPath}`);
 }
 
 // 下载企业微信媒体文件
@@ -1071,7 +1071,7 @@ async function handleHelpCommand({ api, fromUser, corpId, corpSecret, agentId })
 }
 
 async function handleClearCommand({ api, fromUser, corpId, corpSecret, agentId }) {
-  const sessionId = `wecom:${fromUser}`;
+  const sessionId = `openclaw-wechat:${fromUser}`;
   try {
     await execFileAsync("openclaw", ["session", "clear", "--session-id", sessionId], {
       timeout: 10000,
@@ -1081,7 +1081,7 @@ async function handleClearCommand({ api, fromUser, corpId, corpSecret, agentId }
       text: "✅ 会话已清除，我们可以开始新的对话了！",
     });
   } catch (err) {
-    api.logger.warn?.(`wecom: failed to clear session: ${err.message}`);
+    api.logger.warn?.(`openclaw-wechat: failed to clear session: ${err.message}`);
     await sendWecomText({
       api, corpId, corpSecret, agentId, toUser: fromUser,
       text: "会话已重置，请开始新的对话。",
@@ -1097,7 +1097,7 @@ async function handleStatusCommand({ api, fromUser, corpId, corpSecret, agentId 
   const statusText = `📊 系统状态
 
 渠道：企业微信 (WeCom)
-会话ID：wecom:${fromUser}
+会话ID：openclaw-wechat:${fromUser}
 账户ID：${config?.accountId || "default"}
 已配置账户：${accountIds.join(", ")}
 插件版本：0.3.0
@@ -1128,24 +1128,24 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
   const runtime = api.runtime;
 
   if (!config?.corpId || !config?.corpSecret || !config?.agentId) {
-    api.logger.warn?.("wecom: not configured (check channels.wecom in openclaw.json)");
+    api.logger.warn?.("openclaw-wechat: not configured (check channels.wecom in openclaw.json)");
     return;
   }
 
   const { corpId, corpSecret, agentId } = config;
 
   try {
-    // 会话ID：群聊使用 wecom:group:chatId，私聊使用 wecom:userId
+    // 会话ID：群聊使用 openclaw-wechat:group:chatId，私聊使用 openclaw-wechat:userId
     // 注意：sessionKey 需要统一为小写，与 resolveAgentRoute 保持一致
-    const sessionId = isGroupChat ? `wecom:group:${chatId}`.toLowerCase() : `wecom:${fromUser}`.toLowerCase();
-    api.logger.info?.(`wecom: processing ${msgType} message for session ${sessionId}${isGroupChat ? " (group)" : ""}`);
+    const sessionId = isGroupChat ? `openclaw-wechat:group:${chatId}`.toLowerCase() : `openclaw-wechat:${fromUser}`.toLowerCase();
+    api.logger.info?.(`openclaw-wechat: processing ${msgType} message for session ${sessionId}${isGroupChat ? " (group)" : ""}`);
 
     // 命令检测（仅对文本消息）
     if (msgType === "text" && content?.startsWith("/")) {
       const commandKey = content.split(/\s+/)[0].toLowerCase();
       const handler = COMMANDS[commandKey];
       if (handler) {
-        api.logger.info?.(`wecom: handling command ${commandKey}`);
+        api.logger.info?.(`openclaw-wechat: handling command ${commandKey}`);
         await handler({ api, fromUser, corpId, corpSecret, agentId, chatId, isGroupChat });
         return; // 命令已处理，不再调用 AI
       }
@@ -1158,7 +1158,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
     let imageMimeType = null;
 
     if (msgType === "image" && mediaId) {
-      api.logger.info?.(`wecom: downloading image mediaId=${mediaId}`);
+      api.logger.info?.(`openclaw-wechat: downloading image mediaId=${mediaId}`);
 
       try {
         // 优先使用 mediaId 下载原图
@@ -1166,9 +1166,9 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
         imageBase64 = buffer.toString("base64");
         imageMimeType = contentType || "image/jpeg";
         messageText = "[用户发送了一张图片]";
-        api.logger.info?.(`wecom: image downloaded, size=${buffer.length} bytes, type=${imageMimeType}`);
+        api.logger.info?.(`openclaw-wechat: image downloaded, size=${buffer.length} bytes, type=${imageMimeType}`);
       } catch (downloadErr) {
-        api.logger.warn?.(`wecom: failed to download image via mediaId: ${downloadErr.message}`);
+        api.logger.warn?.(`openclaw-wechat: failed to download image via mediaId: ${downloadErr.message}`);
 
         // 降级：尝试通过 PicUrl 下载
         if (picUrl) {
@@ -1177,9 +1177,9 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
             imageBase64 = buffer.toString("base64");
             imageMimeType = contentType || "image/jpeg";
             messageText = "[用户发送了一张图片]";
-            api.logger.info?.(`wecom: image downloaded via PicUrl, size=${buffer.length} bytes`);
+            api.logger.info?.(`openclaw-wechat: image downloaded via PicUrl, size=${buffer.length} bytes`);
           } catch (picUrlErr) {
-            api.logger.warn?.(`wecom: failed to download image via PicUrl: ${picUrlErr.message}`);
+            api.logger.warn?.(`openclaw-wechat: failed to download image via PicUrl: ${picUrlErr.message}`);
             messageText = "[用户发送了一张图片，但下载失败]\n\n请告诉用户图片处理暂时不可用。";
           }
         } else {
@@ -1190,11 +1190,11 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
 
     // 处理语音消息
     if (msgType === "voice" && mediaId) {
-      api.logger.info?.(`wecom: received voice message mediaId=${mediaId}`);
+      api.logger.info?.(`openclaw-wechat: received voice message mediaId=${mediaId}`);
 
       // 企业微信开启语音识别后，Recognition 字段会包含转写结果
       if (recognition) {
-        api.logger.info?.(`wecom: voice recognition result: ${recognition.slice(0, 50)}...`);
+        api.logger.info?.(`openclaw-wechat: voice recognition result: ${recognition.slice(0, 50)}...`);
         messageText = `[语音消息] ${recognition}`;
       } else {
         // 没有开启语音识别，提示用户
@@ -1204,24 +1204,24 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
 
     // 处理视频消息
     if (msgType === "video" && mediaId) {
-      api.logger.info?.(`wecom: received video message mediaId=${mediaId}`);
+      api.logger.info?.(`openclaw-wechat: received video message mediaId=${mediaId}`);
       try {
         const { buffer, contentType } = await downloadWecomMedia({ corpId, corpSecret, mediaId });
         const tempDir = join(tmpdir(), "openclaw-wecom");
         await mkdir(tempDir, { recursive: true });
         const videoTempPath = join(tempDir, `video-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
         await writeFile(videoTempPath, buffer);
-        api.logger.info?.(`wecom: saved video to ${videoTempPath}, size=${buffer.length} bytes`);
+        api.logger.info?.(`openclaw-wechat: saved video to ${videoTempPath}, size=${buffer.length} bytes`);
         messageText = `[用户发送了一个视频文件，已保存到: ${videoTempPath}]\n\n请告知用户您已收到视频。`;
       } catch (downloadErr) {
-        api.logger.warn?.(`wecom: failed to download video: ${downloadErr.message}`);
+        api.logger.warn?.(`openclaw-wechat: failed to download video: ${downloadErr.message}`);
         messageText = "[用户发送了一个视频，但下载失败]\n\n请告诉用户视频处理暂时不可用。";
       }
     }
 
     // 处理文件消息
     if (msgType === "file" && mediaId) {
-      api.logger.info?.(`wecom: received file message mediaId=${mediaId}, fileName=${fileName}, size=${fileSize}`);
+      api.logger.info?.(`openclaw-wechat: received file message mediaId=${mediaId}, fileName=${fileName}, size=${fileSize}`);
       try {
         const { buffer, contentType } = await downloadWecomMedia({ corpId, corpSecret, mediaId });
         const ext = fileName ? fileName.split('.').pop() : 'bin';
@@ -1230,7 +1230,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
         await mkdir(tempDir, { recursive: true });
         const fileTempPath = join(tempDir, `${Date.now()}-${safeFileName}`);
         await writeFile(fileTempPath, buffer);
-        api.logger.info?.(`wecom: saved file to ${fileTempPath}, size=${buffer.length} bytes`);
+        api.logger.info?.(`openclaw-wechat: saved file to ${fileTempPath}, size=${buffer.length} bytes`);
 
         const readableTypes = ['.txt', '.md', '.json', '.xml', '.csv', '.log', '.pdf'];
         const isReadable = readableTypes.some(t => safeFileName.toLowerCase().endsWith(t));
@@ -1241,19 +1241,19 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
           messageText = `[用户发送了一个文件: ${safeFileName}，大小: ${fileSize || buffer.length} 字节，已保存到: ${fileTempPath}]\n\n请告知用户您已收到文件。`;
         }
       } catch (downloadErr) {
-        api.logger.warn?.(`wecom: failed to download file: ${downloadErr.message}`);
+        api.logger.warn?.(`openclaw-wechat: failed to download file: ${downloadErr.message}`);
         messageText = `[用户发送了一个文件${fileName ? `: ${fileName}` : ''}，但下载失败]\n\n请告诉用户文件处理暂时不可用。`;
       }
     }
 
     // 处理链接分享消息
     if (msgType === "link") {
-      api.logger.info?.(`wecom: received link message title=${linkTitle}, url=${linkUrl}`);
+      api.logger.info?.(`openclaw-wechat: received link message title=${linkTitle}, url=${linkUrl}`);
       messageText = `[用户分享了一个链接]\n标题: ${linkTitle || '(无标题)'}\n描述: ${linkDescription || '(无描述)'}\n链接: ${linkUrl || '(无链接)'}\n\n请根据链接内容回复用户。如需要，可以使用 WebFetch 工具获取链接内容。`;
     }
 
     if (!messageText) {
-      api.logger.warn?.("wecom: empty message content");
+      api.logger.warn?.("openclaw-wechat: empty message content");
       return;
     }
 
@@ -1266,11 +1266,11 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
         await mkdir(tempDir, { recursive: true });
         imageTempPath = join(tempDir, `image-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
         await writeFile(imageTempPath, Buffer.from(imageBase64, "base64"));
-        api.logger.info?.(`wecom: saved image to ${imageTempPath}`);
+        api.logger.info?.(`openclaw-wechat: saved image to ${imageTempPath}`);
         // 更新消息文本，告知 AI 图片位置
         messageText = `[用户发送了一张图片，已保存到: ${imageTempPath}]\n\n请使用 Read 工具查看这张图片并描述内容。`;
       } catch (saveErr) {
-        api.logger.warn?.(`wecom: failed to save image: ${saveErr.message}`);
+        api.logger.warn?.(`openclaw-wechat: failed to save image: ${saveErr.message}`);
         messageText = "[用户发送了一张图片，但保存失败]\n\n请告诉用户图片处理暂时不可用。";
         imageTempPath = null;
       }
@@ -1308,8 +1308,8 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
     const ctxPayload = {
       Body: body,
       RawBody: content || "",
-      From: isGroupChat ? `wecom:group:${chatId}` : `wecom:${fromUser}`,
-      To: `wecom:${fromUser}`,
+      From: isGroupChat ? `openclaw-wechat:group:${chatId}` : `openclaw-wechat:${fromUser}`,
+      To: `openclaw-wechat:${fromUser}`,
       SessionKey: sessionId,
       AccountId: config.accountId || "default",
       ChatType: isGroupChat ? "group" : "direct",
@@ -1321,7 +1321,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
       MessageSid: `wecom-${Date.now()}`,
       Timestamp: Date.now(),
       OriginatingChannel: "wecom",
-      OriginatingTo: `wecom:${fromUser}`,
+      OriginatingTo: `openclaw-wechat:${fromUser}`,
     };
 
     // 注册会话到 Sessions UI
@@ -1336,10 +1336,10 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
         accountId: config.accountId || "default",
       } : undefined,
       onRecordError: (err) => {
-        api.logger.warn?.(`wecom: failed to record session: ${err}`);
+        api.logger.warn?.(`openclaw-wechat: failed to record session: ${err}`);
       },
     });
-    api.logger.info?.(`wecom: session registered for ${sessionId}`);
+    api.logger.info?.(`openclaw-wechat: session registered for ${sessionId}`);
 
     // 记录渠道活动
     runtime.channel.activity.record({
@@ -1366,7 +1366,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
       state: "final",
     });
 
-    api.logger.info?.(`wecom: dispatching message via agent runtime for session ${sessionId}`);
+    api.logger.info?.(`openclaw-wechat: dispatching message via agent runtime for session ${sessionId}`);
 
     // 使用 gateway 内部 agent runtime API 调用 AI
     // 对标 Telegram 的 dispatchReplyWithBufferedBlockDispatcher
@@ -1386,7 +1386,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
           deliver: async (payload, info) => {
             // 发送回复到企业微信
             if (payload.text) {
-              api.logger.info?.(`wecom: delivering ${info.kind} reply, length=${payload.text.length}`);
+              api.logger.info?.(`openclaw-wechat: delivering ${info.kind} reply, length=${payload.text.length}`);
               // 应用 Markdown 转换
               const formattedReply = markdownToWecomText(payload.text);
               await sendWecomText({
@@ -1398,7 +1398,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
                 text: formattedReply,
                 logger: api.logger,
               });
-              api.logger.info?.(`wecom: sent AI reply to ${fromUser}: ${formattedReply.slice(0, 50)}...`);
+              api.logger.info?.(`openclaw-wechat: sent AI reply to ${fromUser}: ${formattedReply.slice(0, 50)}...`);
 
               // 写入 AI 回复到 transcript 文件（使 Chat UI 可以显示历史）
               await writeToTranscript({
@@ -1419,7 +1419,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
             }
           },
           onError: (err, info) => {
-            api.logger.error?.(`wecom: ${info.kind} reply failed: ${String(err)}`);
+            api.logger.error?.(`openclaw-wechat: ${info.kind} reply failed: ${String(err)}`);
           },
         },
         replyOptions: {
@@ -1435,8 +1435,8 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
     }
 
   } catch (err) {
-    api.logger.error?.(`wecom: failed to process message: ${err.message}`);
-    api.logger.error?.(`wecom: stack trace: ${err.stack}`);
+    api.logger.error?.(`openclaw-wechat: failed to process message: ${err.message}`);
+    api.logger.error?.(`openclaw-wechat: stack trace: ${err.stack}`);
 
     // 发送错误提示给用户
     try {
@@ -1450,9 +1450,9 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
         logger: api.logger,
       });
     } catch (sendErr) {
-      api.logger.error?.(`wecom: failed to send error message: ${sendErr.message}`);
-      api.logger.error?.(`wecom: send error stack: ${sendErr.stack}`);
-      api.logger.error?.(`wecom: original error was: ${err.message}`);
+      api.logger.error?.(`openclaw-wechat: failed to send error message: ${sendErr.message}`);
+      api.logger.error?.(`openclaw-wechat: send error stack: ${sendErr.stack}`);
+      api.logger.error?.(`openclaw-wechat: original error was: ${err.message}`);
     }
   }
 }
