@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
-import { normalizePluginHttpPath } from "clawdbot/plugin-sdk";
+import { normalizePluginHttpPath } from "openclaw/plugin-sdk";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { writeFile, unlink, mkdir, appendFile } from "node:fs/promises";
@@ -578,19 +578,19 @@ const WecomChannelPlugin = {
     sendText: async ({ to, text }) => {
       const config = getWecomConfig();
       if (!config?.corpId || !config?.corpSecret || !config?.agentId) {
-        return { ok: false, error: new Error("WeCom not configured (check channels.wecom in clawdbot.json)") };
+        return { ok: false, error: new Error("WeCom not configured (check channels.wecom in openclaw.json)") };
       }
       await sendWecomText({ corpId: config.corpId, corpSecret: config.corpSecret, agentId: config.agentId, toUser: to, text });
       return { ok: true, provider: "wecom" };
     },
   },
-  // 入站消息处理 - clawdbot 会调用这个方法
+  // 入站消息处理 - OpenClaw 会调用这个方法
   inbound: {
-    // 当消息需要回复时，clawdbot 会调用这个方法
+    // 当消息需要回复时，OpenClaw 会调用这个方法
     deliverReply: async ({ to, text, accountId, mediaUrl, mediaType }) => {
       const config = getWecomConfig();
       if (!config?.corpId || !config?.corpSecret || !config?.agentId) {
-        throw new Error("WeCom not configured (check channels.wecom in clawdbot.json)");
+        throw new Error("WeCom not configured (check channels.wecom in openclaw.json)");
       }
       const { corpId, corpSecret, agentId } = config;
       // to 格式为 "wecom:userid"，需要提取 userid
@@ -632,7 +632,7 @@ let gatewayBroadcastCtx = null;
 // 写入消息到 session transcript 文件，使 Chat UI 可以显示
 async function writeToTranscript({ sessionKey, role, text, logger }) {
   try {
-    const stateDir = process.env.CLAWDBOT_STATE_DIR || join(homedir(), ".clawdbot");
+    const stateDir = process.env.OPENCLAW_STATE_DIR || join(homedir(), ".openclaw");
     const sessionsDir = join(stateDir, "agents", "main", "sessions");
     const sessionsJsonPath = join(sessionsDir, "sessions.json");
 
@@ -839,7 +839,7 @@ export default function register(api) {
   if (cfg) {
     api.logger.info?.(`wecom: config loaded (corpId=${cfg.corpId?.slice(0, 8)}...)`);
   } else {
-    api.logger.warn?.("wecom: no configuration found (check channels.wecom in clawdbot.json)");
+    api.logger.warn?.("wecom: no configuration found (check channels.wecom in openclaw.json)");
   }
 
   api.registerChannel({ plugin: WecomChannelPlugin });
@@ -1073,7 +1073,7 @@ async function handleHelpCommand({ api, fromUser, corpId, corpSecret, agentId })
 async function handleClearCommand({ api, fromUser, corpId, corpSecret, agentId }) {
   const sessionId = `wecom:${fromUser}`;
   try {
-    await execFileAsync("clawdbot", ["session", "clear", "--session-id", sessionId], {
+    await execFileAsync("openclaw", ["session", "clear", "--session-id", sessionId], {
       timeout: 10000,
     });
     await sendWecomText({
@@ -1128,7 +1128,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
   const runtime = api.runtime;
 
   if (!config?.corpId || !config?.corpSecret || !config?.agentId) {
-    api.logger.warn?.("wecom: not configured (check channels.wecom in clawdbot.json)");
+    api.logger.warn?.("wecom: not configured (check channels.wecom in openclaw.json)");
     return;
   }
 
@@ -1207,7 +1207,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
       api.logger.info?.(`wecom: received video message mediaId=${mediaId}`);
       try {
         const { buffer, contentType } = await downloadWecomMedia({ corpId, corpSecret, mediaId });
-        const tempDir = join(tmpdir(), "clawdbot-wecom");
+        const tempDir = join(tmpdir(), "openclaw-wecom");
         await mkdir(tempDir, { recursive: true });
         const videoTempPath = join(tempDir, `video-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
         await writeFile(videoTempPath, buffer);
@@ -1226,7 +1226,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
         const { buffer, contentType } = await downloadWecomMedia({ corpId, corpSecret, mediaId });
         const ext = fileName ? fileName.split('.').pop() : 'bin';
         const safeFileName = fileName || `file-${Date.now()}.${ext}`;
-        const tempDir = join(tmpdir(), "clawdbot-wecom");
+        const tempDir = join(tmpdir(), "openclaw-wecom");
         await mkdir(tempDir, { recursive: true });
         const fileTempPath = join(tempDir, `${Date.now()}-${safeFileName}`);
         await writeFile(fileTempPath, buffer);
@@ -1262,7 +1262,7 @@ async function processInboundMessage({ api, fromUser, content, msgType, mediaId,
     if (imageBase64 && imageMimeType) {
       try {
         const ext = imageMimeType.includes("png") ? "png" : imageMimeType.includes("gif") ? "gif" : "jpg";
-        const tempDir = join(tmpdir(), "clawdbot-wecom");
+        const tempDir = join(tmpdir(), "openclaw-wecom");
         await mkdir(tempDir, { recursive: true });
         imageTempPath = join(tempDir, `image-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
         await writeFile(imageTempPath, Buffer.from(imageBase64, "base64"));
